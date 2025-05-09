@@ -107,9 +107,24 @@ class VoDDataset_lidar_radar(DatasetTemplate):
         if self.logger is not None:
             self.logger.info('Total samples for VoD dataset: %d' % (len(VoD_infos)))
 
-    def set_split(self, split):
+    # def set_split(self, split):
+    #     super().__init__(
+    #         dataset_cfg=self.dataset_cfg, class_names=self.class_names, training=self.training, root_path=self.root_path, logger=self.logger
+    #     )
+    #     self.split = split
+    #     self.root_split_path = self.root_path / ('training' if self.split != 'test' else 'testing')
+    #     self.root_split_path_2 = self.root_path_2 / ('training' if self.split != 'test' else 'testing')
+
+    #     split_dir = self.root_path / 'ImageSets' / (self.split + '.txt')
+    #     self.sample_id_list = [x.strip() for x in open(split_dir).readlines()] if split_dir.exists() else None
+
+    def set_split(self, split, num_chunks=None):
         super().__init__(
-            dataset_cfg=self.dataset_cfg, class_names=self.class_names, training=self.training, root_path=self.root_path, logger=self.logger
+            dataset_cfg=self.dataset_cfg,
+            class_names=self.class_names,
+            training=self.training,
+            root_path=self.root_path,
+            logger=self.logger
         )
         self.split = split
         self.root_split_path = self.root_path / ('training' if self.split != 'test' else 'testing')
@@ -118,9 +133,22 @@ class VoDDataset_lidar_radar(DatasetTemplate):
         split_dir = self.root_path / 'ImageSets' / (self.split + '.txt')
         self.sample_id_list = [x.strip() for x in open(split_dir).readlines()] if split_dir.exists() else None
 
+        # 샘플을 num_chunks개로 균등하게 나눔
+        if num_chunks is not None:
+            chunk_size = (len(self.sample_id_list) + num_chunks - 1) // num_chunks  # ceil
+            self.sample_id_chunks = [
+                self.sample_id_list[i * chunk_size:(i + 1) * chunk_size]
+                for i in range(num_chunks)
+            ]
+        else:
+            self.sample_id_chunks = [self.sample_id_list]
+
     def get_lidar(self, idx):
         lidar_file = self.root_split_path / 'velodyne' / ('%s.bin' % idx)
         radar_file = self.root_split_path_2 / 'velodyne' / ('%s.bin' % idx)
+        # print(f"[DEBUG] radar_file path: {radar_file}")
+        # print(f"[DEBUG] File exists? {radar_file.exists()}")
+
         assert radar_file.exists()
         assert lidar_file.exists()
 
